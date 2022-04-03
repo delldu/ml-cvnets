@@ -717,29 +717,29 @@ class MobileViT(nn.Module):
         return x
 
 
-def MobileViT_XXS():
+def MobileViT_XXS(pretained=True):
     c = model_config["xxs"]
     model = MobileViT(c["features"], c["dims"], c["layers"], c["expansion_ratio"])
-    model.load_state_dict(torch.load("mobilevit_xxs.pt", map_location="cpu"))
-    model = torch.jit.script(model)
+    if pretained:
+        model.load_state_dict(torch.load("models/mobilevit_xxs.pt", map_location="cpu"))
 
     return model
 
 
-def MobileViT_XS():
+def MobileViT_XS(pretained=True):
     c = model_config["xs"]
     model = MobileViT(c["features"], c["dims"], c["layers"], c["expansion_ratio"])
-    model.load_state_dict(torch.load("mobilevit_xs.pt", map_location="cpu"))
-    model = torch.jit.script(model)
+    if pretained:
+        model.load_state_dict(torch.load("models/mobilevit_xs.pt", map_location="cpu"))
 
     return model
 
 
-def MobileViT_S():
+def MobileViT_S(pretained=True):
     c = model_config["s"]
     model = MobileViT(c["features"], c["dims"], c["layers"], c["expansion_ratio"])
-    model.load_state_dict(torch.load("mobilevit_s.pt", map_location="cpu"))
-    model = torch.jit.script(model)
+    if pretained:
+        model.load_state_dict(torch.load("models/mobilevit_s.pt", map_location="cpu"))
 
     return model
 
@@ -765,5 +765,7 @@ if __name__ == "__main__":
         output = model_s(img)
 
     print(output)
-    pdb.set_trace()
 
+
+    model_s = torch.jit.script(model_s)
+    pdb.set_trace()
