@@ -717,28 +717,28 @@ class MobileViT(nn.Module):
         return x
 
 
-def MobileViT_XXS(pretained=True):
+def MobileViT_XXS(pretrained=True):
     c = model_config["xxs"]
     model = MobileViT(c["features"], c["dims"], c["layers"], c["expansion_ratio"])
-    if pretained:
+    if pretrained:
         model.load_state_dict(torch.load("models/mobilevit_xxs.pt", map_location="cpu"))
 
     return model
 
 
-def MobileViT_XS(pretained=True):
+def MobileViT_XS(pretrained=True):
     c = model_config["xs"]
     model = MobileViT(c["features"], c["dims"], c["layers"], c["expansion_ratio"])
-    if pretained:
+    if pretrained:
         model.load_state_dict(torch.load("models/mobilevit_xs.pt", map_location="cpu"))
 
     return model
 
 
-def MobileViT_S(pretained=True):
+def MobileViT_S(pretrained=True):
     c = model_config["s"]
     model = MobileViT(c["features"], c["dims"], c["layers"], c["expansion_ratio"])
-    if pretained:
+    if pretrained:
         model.load_state_dict(torch.load("models/mobilevit_s.pt", map_location="cpu"))
 
     return model
