@@ -28,7 +28,7 @@ if __name__ == "__main__":
     parser.add_argument("--checkpoint", type=str, default="output/model.pth", help="checkpoint file")
     parser.add_argument("--bs", type=int, default=32, help="batch size")
     parser.add_argument("--lr", type=float, default=1e-3, help="learning rate")
-    parser.add_argument("--epochs", type=int, default=20)
+    parser.add_argument("--epochs", type=int, default=200)
     args = parser.parse_args()
 
     # Create directory to store result
@@ -58,8 +58,8 @@ if __name__ == "__main__":
     # ************************************************************************************/
     #
     params = [p for p in net.parameters() if p.requires_grad]
-    optimizer = optim.SGD(params, lr=args.lr, momentum=0.9, weight_decay=0.1)
-    lr_scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=10, gamma=0.1)
+    optimizer = optim.SGD(params, lr=args.lr, momentum=0.9)
+    lr_scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=50, gamma=0.1)
 
     for epoch in range(args.epochs):
         print("Epoch {}/{}, learning rate: {:.6f} ...".format(epoch + 1, args.epochs, lr_scheduler.get_last_lr()[0]))

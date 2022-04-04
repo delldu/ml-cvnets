@@ -79,7 +79,7 @@ def load_mobilevit_model(device, name):
 
     # Fine tune
     for p in model.parameters():
-        p.requires_grad = False
+        p.requires_grad = True
     model.classifier.fc.out_features = len(classnames)
     reset_params(model.classifier.fc)
     for p in model.classifier.fc.parameters():
