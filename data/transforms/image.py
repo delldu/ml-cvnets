@@ -11,6 +11,7 @@ import random
 import torch
 import math
 import argparse
+import pdb
 
 from typing import Sequence, Dict, Any, Union, Tuple
 
@@ -1147,10 +1148,12 @@ class NumpyToTensor(BaseTransformation):
         img_tensor = torch.from_numpy(img).float()
         img_tensor = torch.div(img_tensor, 255.0)
         data["image"] = img_tensor
+        print("image.size: ", img_tensor.size(), "image.mean: ", img_tensor.mean(), img_tensor.min(), img_tensor.max())
 
         mask = data.get("mask", None)
         if mask is not None:
             data["mask"] = torch.from_numpy(mask).long()
+
 
         return data
 
