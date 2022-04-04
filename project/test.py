@@ -15,22 +15,22 @@ import pdb  # For debug
 
 import torch
 
-from data import get_data
-from model import get_model, model_device, valid_epoch
+import data
+import model
 
 if __name__ == "__main__":
     """Test model."""
 
     parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-    parser.add_argument('--checkpoint', type=str, default="output/mobilevit.pth", help="checkpoint file")
-    parser.add_argument('--bs', type=int, default=2, help="batch size")
+    parser.add_argument("--checkpoint", type=str, default="output/model.pth", help="checkpoint file")
+    parser.add_argument("--bs", type=int, default=32, help="batch size")
     args = parser.parse_args()
 
     # get model
-    model = get_model(args.checkpoint)
-    device = model_device()
-    model = model.to(device)
+    device = model.model_device()
+    net = model.load_model(device, args.checkpoint)
+    net = net.to(device)
 
     print("Start testing ...")
-    test_dl = get_data(trainning=False, bs=args.bs)
-    valid_epoch(test_dl, model, device, tag='test')
+    test_dl = data.load(trainning=False, bs=args.bs)
+    model.valid_epoch(test_dl, net, device, tag="test")

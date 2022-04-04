@@ -1,4 +1,4 @@
-"""Data loader."""# coding=utf-8
+"""Data loader."""  # coding=utf-8
 #
 # /************************************************************************************
 # ***
@@ -29,17 +29,15 @@ import model
 TRAIN_DATA_ROOT_DIR = "data/train"
 VALID_DATA_ROOT_DIR = "data/test"
 
-IMAGENET_MEAN = [0.485, 0.456, 0.406]
-IMAGENET_STD = [0.229, 0.224, 0.225]
-
 
 def load_image_dataset(datadir):
-    transform = T.Compose([
-        T.Resize((256, 256)),
-        T.RandomHorizontalFlip(),
-        torchvision.transforms.ToTensor(),
-        torchvision.transforms.Normalize(IMAGENET_MEAN, IMAGENET_STD)
-    ])
+    transform = T.Compose(
+        [
+            T.Resize((256, 256)),
+            T.RandomHorizontalFlip(),
+            T.ToTensor(),
+        ]
+    )
 
     ds = torchvision.datasets.ImageFolder(datadir, transform)
     print("Dataset information:")
@@ -49,21 +47,20 @@ def load_image_dataset(datadir):
 
 
 def image_to_tensor(image):
-    transform = T.Compose([
-        t.Resize((256, 256)),
-        torchvision.transforms.ToTensor(),
-        torchvision.transforms.Normalize(IMAGENET_MEAN, IMAGENET_STD)
-    ])
+    transform = T.Compose(
+        [
+            T.Resize((256, 256)),
+            T.ToTensor(),
+        ]
+    )
     t = transform(image)
     t.unsqueeze_(0)
     return t
 
 
 def grid_image(tensor_list, nrow=3):
-    grid = torchvision.utils.make_grid(
-        torch.cat(tensor_list, dim=0), nrow=nrow)
-    ndarr = grid.mul(255).add_(0.5).clamp_(0, 255).permute(
-        1, 2, 0).to('cpu', torch.uint8).numpy()
+    grid = torchvision.utils.make_grid(torch.cat(tensor_list, dim=0), nrow=nrow)
+    ndarr = grid.mul(255).add_(0.5).clamp_(0, 255).permute(1, 2, 0).to("cpu", torch.uint8).numpy()
     image = Image.fromarray(ndarr)
     return image
 
@@ -79,15 +76,14 @@ def train_data(bs):
     #
     # /************************************************************************************
     # ***
-    # ***    MS: Split train_ds in train and valid set with 0.2
+    # ***    MS: Split train_ds in train and valid set with 0.1
     # ***
     # ************************************************************************************/
-    #    
-    valid_len = int(0.2 * len(train_ds))
-    indices = [i for i in range(len(train_ds) - valid_len, len(train_ds))]
-
+    #
+    indices = [i for i in range(len(train_ds)) if i % 10 == 0]
     valid_ds = torch.utils.data.Subset(train_ds, indices)
-    indices = [i for i in range(len(train_ds) - valid_len)]
+
+    indices = [i for i in range(len(train_ds)) if i % 10 != 0]
     train_ds = torch.utils.data.Subset(train_ds, indices)
 
     # Define training and validation data loaders
@@ -95,6 +91,7 @@ def train_data(bs):
     valid_dl = torch.utils.data.DataLoader(valid_ds, batch_size=bs, shuffle=False, num_workers=4)
 
     return train_dl, valid_dl
+
 
 def test_data(bs):
     """Get data loader for test, bs means batch_size."""
@@ -110,16 +107,12 @@ def load(trainning=True, bs=4):
 
     return train_data(bs) if trainning else test_data(bs)
 
+
 def test_dataset():
     """Test dataset ..."""
-
     ds = load_image_dataset(TRAIN_DATA_ROOT_DIR)
     print(ds)
-    # src, tgt = ds[0]
-    # grid = torchvision.utils.make_grid(torch.cat([src.unsqueeze(0), tgt.unsqueeze(0)], dim=0), nrow=2)
-    # ndarr = grid.mul(255).add_(0.5).clamp_(0, 255).permute(1, 2, 0).to('cpu', torch.uint8).numpy()
-    # image = Image.fromarray(ndarr)
-    # image.show()
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     test_dataset()

@@ -1,4 +1,4 @@
-"""Create model."""# coding=utf-8
+"""Create model."""  # coding=utf-8
 #
 # /************************************************************************************
 # ***
@@ -17,11 +17,14 @@ import sys
 import torch
 import torch.nn as nn
 from tqdm import tqdm
-from mobilevit import MobileViT_S, LinearLayer
+import torchvision
+import data
+from mobilevit import MobileViT_S, MobileViT_XXS
 
 PROJECT = "flower"
 DEFAULT_MODEL = "models/" + PROJECT + ".model"
 DEFAULT_LABEL = "models/" + PROJECT + ".label"
+
 
 def load_class_names(model_file=DEFAULT_MODEL):
     label_file = model_file.replace("model", "label")
@@ -32,49 +35,67 @@ def load_class_names(model_file=DEFAULT_MODEL):
     classnames = [line.strip() for line in f.readlines()]
     return classnames
 
+
 def save_class_names(classes):
     sep = "\n"
-    f = open(DEFAULT_LABEL, 'w')
+    f = open(DEFAULT_LABEL, "w")
     f.write(sep.join(classes))
     f.close()
 
-class mobilevitModel(nn.Module):
+
+def reset_params(model):
+    if model.weight is not None:
+        torch.nn.init.xavier_uniform_(model.weight)
+    if model.bias is not None:
+        torch.nn.init.constant_(model.bias, 0)
+
+
+def load_squeezenet_model(device, name):
+    classnames = load_class_names()
+
+    model = torchvision.models.squeezenet1_1(pretrained=True)
+
+    # Fine tune
+    for p in model.parameters():
+        p.requires_grad = False
+    model.classifier[1].out_channels = len(classnames)
+    reset_params(model.classifier[1])
+    for p in model.classifier[1].parameters():
+        p.requires_grad = True
+
+    if os.path.exists(name):
+        model.load_state_dict(torch.load(name))
+
+    model = model.to(device)
+
+    return model
+
+
+def load_mobilevit_model(device, name):
     """mobilevit Model."""
+    classnames = load_class_names()
 
-    def __init__(self):
-        """Init model."""
-        super(mobilevitModel, self).__init__()
-        self.backbone = MobileViT_S(pretrained=True)
+    model = MobileViT_S(pretrained=True)
 
-        # Fine tunning ...
-        # for p in self.backbone.parameters():
-        #     p.requires_grad = False
+    # Fine tune
+    for p in model.parameters():
+        p.requires_grad = False
+    model.classifier.fc.out_features = len(classnames)
+    reset_params(model.classifier.fc)
+    for p in model.classifier.fc.parameters():
+        p.requires_grad = True
 
-        classnames =load_class_names()
-        # nc = self.backbone.classifier.fc.in_features
-        # self.backbone.classifier.fc = LinearLayer(in_features=nc, out_features=len(classnames), bias=True)
-        self.backbone.classifier.fc.out_features = len(classnames)
-        # for p in self.backbone.classifier.fc.parameters():
-        #     p.requires_grad = True
+    if os.path.exists(name):
+        model.load_state_dict(torch.load(name))
 
-    def forward(self, x):
-        return self.backbone(x)
+    model = model.to(device)
+
+    return model
 
 
-def model_load(model, path):
-    """Load model."""
-
-    if not os.path.exists(path):
-        print("Model '{}' does not exist.".format(path))
-        return
-
-    state_dict = torch.load(path, map_location=lambda storage, loc: storage)
-    target_state_dict = model.state_dict()
-    for n, p in state_dict.items():
-        if n in target_state_dict.keys():
-            target_state_dict[n].copy_(p)
-        else:
-            raise KeyError(n)
+def load_model(device, name):
+    # return load_squeezenet_model(device, name)
+    return load_mobilevit_model(device, name)
 
 
 def model_save(model, path):
@@ -93,6 +114,7 @@ def get_model(checkpoint):
     model.to(device)
 
     return model
+
 
 class Counter(object):
     """Class Counter."""
@@ -119,7 +141,7 @@ class Counter(object):
         self.avg = self.sum / self.count
 
 
-def train_epoch(loader, model, optimizer, device, tag=''):
+def train_epoch(loader, model, optimizer, device, tag="train"):
     """Trainning model ..."""
 
     total_loss = Counter()
@@ -135,6 +157,9 @@ def train_epoch(loader, model, optimizer, device, tag=''):
     #
     loss_function = torch.nn.CrossEntropyLoss()
 
+    correct = 0
+    total = 0
+
     with tqdm(total=len(loader.dataset)) as t:
         t.set_description(tag)
 
@@ -146,34 +171,29 @@ def train_epoch(loader, model, optimizer, device, tag=''):
             images = images.to(device)
             labels = labels.to(device)
 
-            # zero the parameter gradients
-            optimizer.zero_grad()
-
             outputs = model(images)
 
-            # # statics
-            # _, predicted = torch.max(outputs, dim=1)
+            # Statics
+            _, predicted = torch.max(outputs, dim=1)
+            total += count
+            correct += (predicted == labels).sum().item()
+
             loss = loss_function(outputs, labels)
             loss_value = loss.item()
-
-            if not math.isfinite(loss_value):
-                print("Loss is {}, stopping training".format(loss_value))
-                sys.exit(1)
-
-            # Update loss
             total_loss.update(loss_value, count)
 
-            t.set_postfix(loss='{:.6f}'.format(total_loss.avg))
+            t.set_postfix(loss="{:.6f}, ACC={:.3f}".format(total_loss.avg, correct / total))
             t.update(count)
 
             # Optimizer
+            optimizer.zero_grad()
             loss.backward()
             optimizer.step()
 
         return total_loss.avg
 
 
-def valid_epoch(loader, model, device, tag=''):
+def valid_epoch(loader, model, device, tag="valid"):
     """Validating model  ..."""
 
     valid_loss = Counter()
@@ -189,8 +209,8 @@ def valid_epoch(loader, model, device, tag=''):
     #
     loss_function = torch.nn.CrossEntropyLoss()
 
-    total = 0
     correct = 0
+    total = 0
 
     with tqdm(total=len(loader.dataset)) as t:
         t.set_description(tag)
@@ -208,21 +228,21 @@ def valid_epoch(loader, model, device, tag=''):
                 outputs = model(images)
 
             # Statics
-            _, predicted = torch.max(outputs.data, dim=1)
-            total += labels.size(0)
+            _, predicted = torch.max(outputs, dim=1)
+            total += count
             correct += (predicted == labels).sum().item()
-
 
             loss = loss_function(outputs, labels)
             loss_value = loss.item()
-
             valid_loss.update(loss_value, count)
-            t.set_postfix(loss='{:.6f}, ACC={:.3f}'.format(valid_loss.avg, correct/total))
+
+            t.set_postfix(loss="{:.6f}, ACC={:.3f}".format(valid_loss.avg, correct / total))
             t.update(count)
 
-def model_device():
-    """Please call after model_setenv. """
 
+def model_device():
+    """Please call after model_setenv."""
+    model_setenv()
     return torch.device(os.environ["DEVICE"])
 
 
@@ -231,14 +251,15 @@ def model_setenv():
 
     # random init ...
     import random
+
     random.seed(42)
     torch.manual_seed(42)
 
     # Set default device to avoid exceptions
     if os.environ.get("DEVICE") != "cuda" and os.environ.get("DEVICE") != "cpu":
-        os.environ["DEVICE"] = 'cuda' if torch.cuda.is_available() else 'cpu'
+        os.environ["DEVICE"] = "cuda" if torch.cuda.is_available() else "cpu"
 
-    if os.environ["DEVICE"] == 'cuda':
+    if os.environ["DEVICE"] == "cuda":
         torch.backends.cudnn.enabled = True
         torch.backends.cudnn.benchmark = True
 
@@ -246,3 +267,17 @@ def model_setenv():
     print("----------------------------------------------")
     print("  PWD: ", os.environ["PWD"])
     print("  DEVICE: ", os.environ["DEVICE"])
+
+
+def model_predict(device, model, image):
+    t = data.image_to_tensor(image)
+    t = t.to(device)
+    model.eval()
+
+    with torch.no_grad():
+        outputs = model(t)
+        _, label = torch.max(outputs.data, 1)  # by 0 -- cols, 1 -- rows
+        i = label[0].item()
+        outputs = torch.nn.functional.softmax(outputs, dim=1)
+        prob = outputs[0][i].item()
+    return i, prob

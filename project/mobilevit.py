@@ -192,6 +192,7 @@ class LinearLayer(nn.Module):
             self.bias = nn.Parameter(torch.Tensor(out_features))
         self.in_features = in_features
         self.out_features = out_features
+        # self.reset_params()
 
     def forward(self, x):
         if self.bias is not None and x.dim() == 2:
@@ -765,7 +766,6 @@ if __name__ == "__main__":
         output = model_s(img)
 
     print(output)
-
 
     model_s = torch.jit.script(model_s)
     pdb.set_trace()
