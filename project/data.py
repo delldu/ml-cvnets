@@ -9,7 +9,6 @@
 # ************************************************************************************/
 #
 
-import os
 import pdb  # For debug
 
 import torch
@@ -33,7 +32,8 @@ VALID_DATA_ROOT_DIR = "data/test"
 def load_image_dataset(datadir):
     transform = T.Compose(
         [
-            T.Resize((256, 256)),
+            T.Resize(size=288), 
+            T.CenterCrop(size=(256, 256)),         
             T.RandomHorizontalFlip(),
             T.ToTensor(),
         ]
@@ -49,7 +49,8 @@ def load_image_dataset(datadir):
 def image_to_tensor(image):
     transform = T.Compose(
         [
-            T.Resize((256, 256)),
+            T.Resize(size=288), 
+            T.CenterCrop(size=(256, 256)),         
             T.ToTensor(),
         ]
     )
@@ -71,8 +72,6 @@ def train_data(bs):
     train_ds = load_image_dataset(TRAIN_DATA_ROOT_DIR)
     model.save_class_names(train_ds.classes)
 
-    print(train_ds)
-
     #
     # /************************************************************************************
     # ***
@@ -80,11 +79,11 @@ def train_data(bs):
     # ***
     # ************************************************************************************/
     #
-    indices = [i for i in range(len(train_ds)) if i % 10 == 0]
-    valid_ds = torch.utils.data.Subset(train_ds, indices)
-
-    indices = [i for i in range(len(train_ds)) if i % 10 != 0]
+    indices = [i for i in range(len(train_ds)) if i % 10 != 5]
     train_ds = torch.utils.data.Subset(train_ds, indices)
+
+    indices = [i for i in range(len(train_ds)) if i % 10 == 5]
+    valid_ds = torch.utils.data.Subset(train_ds, indices)
 
     # Define training and validation data loaders
     train_dl = torch.utils.data.DataLoader(train_ds, batch_size=bs, shuffle=True, num_workers=4)

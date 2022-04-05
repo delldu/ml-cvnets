@@ -350,7 +350,7 @@ class TransformerEncoder(nn.Module):
             get_norm_layer(norm_type="layer_norm", num_features=embed_dim),
             LinearLayer(in_features=embed_dim, out_features=ffn_latent_dim),
             Swish(),
-            nn.Dropout(p=0.0, inplace=True),
+            nn.Dropout(p=0.1, inplace=True),
             LinearLayer(in_features=ffn_latent_dim, out_features=embed_dim),
             nn.Dropout(p=dropout, inplace=True),
         )

@@ -28,7 +28,7 @@ if __name__ == "__main__":
     parser.add_argument("--checkpoint", type=str, default="output/model.pth", help="checkpoint file")
     parser.add_argument("--bs", type=int, default=32, help="batch size")
     parser.add_argument("--lr", type=float, default=1e-3, help="learning rate")
-    parser.add_argument("--epochs", type=int, default=200)
+    parser.add_argument("--epochs", type=int, default=50)
     args = parser.parse_args()
 
     # Create directory to store result
@@ -59,10 +59,11 @@ if __name__ == "__main__":
     #
     params = [p for p in net.parameters() if p.requires_grad]
     optimizer = optim.SGD(params, lr=args.lr, momentum=0.9)
-    lr_scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=50, gamma=0.1)
+    opt_step_size = (args.epochs  + 2)// 3 # from 0.01 -> 0.001, 0.0001, 0.00001
+    lr_scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=opt_step_size, gamma=0.1)
 
     for epoch in range(args.epochs):
-        print("Epoch {}/{}, learning rate: {:.6f} ...".format(epoch + 1, args.epochs, lr_scheduler.get_last_lr()[0]))
+        print("Epoch {}/{}, learning rate: {:.8f} ...".format(epoch + 1, args.epochs, lr_scheduler.get_last_lr()[0]))
         model.train_epoch(train_dl, net, optimizer, device, tag="train")
         model.valid_epoch(valid_dl, net, device, tag="valid")
 
@@ -76,4 +77,5 @@ if __name__ == "__main__":
         # ************************************************************************************/
         #
         if epoch == (args.epochs // 2) or (epoch == args.epochs - 1):
+            print("Saving model ...")
             model.model_save(net, args.checkpoint)

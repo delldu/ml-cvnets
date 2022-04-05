@@ -49,28 +49,6 @@ def reset_params(model):
     if model.bias is not None:
         torch.nn.init.constant_(model.bias, 0)
 
-
-def load_squeezenet_model(device, name):
-    classnames = load_class_names()
-
-    model = torchvision.models.squeezenet1_1(pretrained=True)
-
-    # Fine tune
-    for p in model.parameters():
-        p.requires_grad = False
-    model.classifier[1].out_channels = len(classnames)
-    reset_params(model.classifier[1])
-    for p in model.classifier[1].parameters():
-        p.requires_grad = True
-
-    if os.path.exists(name):
-        model.load_state_dict(torch.load(name))
-
-    model = model.to(device)
-
-    return model
-
-
 def load_mobilevit_model(device, name):
     """mobilevit Model."""
     classnames = load_class_names()
@@ -94,7 +72,6 @@ def load_mobilevit_model(device, name):
 
 
 def load_model(device, name):
-    # return load_squeezenet_model(device, name)
     return load_mobilevit_model(device, name)
 
 
@@ -102,18 +79,6 @@ def model_save(model, path):
     """Save model."""
 
     torch.save(model.state_dict(), path)
-
-
-def get_model(checkpoint):
-    """Create model."""
-
-    model_setenv()
-    model = mobilevitModel()
-    model_load(model, checkpoint)
-    device = model_device()
-    model.to(device)
-
-    return model
 
 
 class Counter(object):
@@ -179,8 +144,7 @@ def train_epoch(loader, model, optimizer, device, tag="train"):
             correct += (predicted == labels).sum().item()
 
             loss = loss_function(outputs, labels)
-            loss_value = loss.item()
-            total_loss.update(loss_value, count)
+            total_loss.update(loss.item(), count)
 
             t.set_postfix(loss="{:.6f}, ACC={:.3f}".format(total_loss.avg, correct / total))
             t.update(count)
@@ -233,8 +197,7 @@ def valid_epoch(loader, model, device, tag="valid"):
             correct += (predicted == labels).sum().item()
 
             loss = loss_function(outputs, labels)
-            loss_value = loss.item()
-            valid_loss.update(loss_value, count)
+            valid_loss.update(loss.item(), count)
 
             t.set_postfix(loss="{:.6f}, ACC={:.3f}".format(valid_loss.avg, correct / total))
             t.update(count)
